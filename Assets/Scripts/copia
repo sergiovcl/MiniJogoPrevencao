@@ -1,0 +1,112 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class MiniGamePrevencaoPlayer : MonoBehaviour
+{
+    //movimentação player
+    public float speed = 8f;
+    public Rigidbody2D playerRb;
+    Vector2 movement;
+
+    //animação
+    public Animator anim;
+
+    //vida player
+    public int healthMax = 3;
+    public int health;
+
+    //barra de xp
+    public Transform lifeBar;
+    public GameObject lifeBarObject;
+    private Vector3 lifeBarScale;
+    private float lifePercent;
+    private float lifeBarScaleMax;
+
+    
+
+    void Start()
+    {
+        health = healthMax;
+
+        lifeBarScale = lifeBar.localScale;
+        lifePercent = lifeBarScale.x / health;
+        lifeBarScaleMax = lifePercent * health;
+
+    }
+
+    void UpdateLifeBar()
+    {
+        if(lifePercent * health > lifeBarScaleMax)
+        {
+            return;
+        }
+
+        lifeBarScale.x = lifePercent * health;
+        lifeBar.localScale = lifeBarScale;
+    }
+
+    void Update()
+    {
+        Vector3 movement = new Vector3(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), 0f);
+        anim.SetFloat("Horizontal", movement.x);
+        anim.SetFloat("Vertical", movement.y);
+        anim.SetFloat("Speed", movement.magnitude);
+
+        transform.position = transform.position + movement * speed * Time.deltaTime;
+        }
+
+    private void FixedUpdate()
+    {
+        playerRb.MovePosition(playerRb.position + movement * speed * Time.fixedDeltaTime); 
+    }
+
+    public void OnDamage()
+    {
+        health -= 1;
+        UpdateLifeBar();
+        Debug.Log($"Tomar dano dentro de onDamage, health: {health}");
+        if(health <= 0)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex +1);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collider)
+    {
+        if (collider.gameObject.CompareTag("Contamined"))
+        { 
+            collider.gameObject.GetComponent<MiniGamePrevencaoContamined>().DisableContaminated();
+            
+        }
+        if (collider.gameObject.CompareTag("Validade"))
+        {
+            health -= 1;
+            UpdateLifeBar();
+            if (health <= 0)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex +1);
+            }
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Epi"))
+        {
+            Destroy(collision.gameObject);
+            if(health + 1 <= healthMax)
+            {
+                health += 1;
+                UpdateLifeBar();
+            }
+        }
+         if (collision.gameObject.CompareTag("Vitoria"))
+        {
+            Destroy(collision.gameObject);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex +2);
+        }  
+
+    }
+}
